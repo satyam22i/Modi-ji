@@ -22,7 +22,7 @@ export default function GameCanvas() {
     gameOver: false,
   });
 
-  // Helpers to load images and audio
+  // Helpers
   const loadImage = (src) =>
     new Promise((resolve, reject) => {
       const img = new Image();
@@ -44,6 +44,20 @@ export default function GameCanvas() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const s = stateRef.current;
+
+    const isMobile = window.innerWidth < 768;
+
+    // ✅ Adjust game settings for mobile
+    if (isMobile) {
+      s.GAME_SPEED = 3;
+      s.WALL_WIDTH = 120;
+      s.FLAP_FORCE = -12;
+      s.GRAVITY = 1.03;
+    }
+
+    // Prevent scroll
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -89,7 +103,6 @@ export default function GameCanvas() {
       });
     };
 
-    // Generic collision for coins only
     const collide = (a, b) =>
       a.x < b.x + b.w &&
       a.x + a.w > b.x &&
@@ -104,7 +117,8 @@ export default function GameCanvas() {
       stopAllAudio();
       assetsRef.current.bellSound?.play();
       setTimeout(() => assetsRef.current.gameOverSound?.play(), 300);
-      document.getElementById("message").style.display = "block";
+      const msg = document.getElementById("message");
+      if (msg) msg.style.display = "block";
     };
 
     const resetGame = () => {
@@ -118,8 +132,10 @@ export default function GameCanvas() {
       s.gameOver = false;
       s.player.y = s.H / 2;
       s.player.vy = 0;
-      document.getElementById("score").innerText = 0;
-      document.getElementById("message").style.display = "none";
+      const score = document.getElementById("score");
+      if (score) score.innerText = 0;
+      const msg = document.getElementById("message");
+      if (msg) msg.style.display = "none";
       startGame();
     };
 
@@ -144,12 +160,10 @@ export default function GameCanvas() {
         if (a.modiImg.complete && a.modiImg.naturalWidth)
           ctx.drawImage(a.modiImg, s.player.x, s.player.y, s.player.w, s.player.h);
 
-        // Obstacles
         for (let i = s.obstacles.length - 1; i >= 0; i--) {
           const o = s.obstacles[i];
           o.x -= s.GAME_SPEED;
 
-          // Draw Rahul wall
           if (o.inverted) {
             ctx.save();
             ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
@@ -160,31 +174,23 @@ export default function GameCanvas() {
             ctx.drawImage(a.rahulImg, o.x, o.y, o.w, o.h);
           }
 
-          // ✅ Improved natural collision
-          if (o.inverted) {
-            // Top wall — collide when Modi's bottom touches Rahul's head
-            if (
-              s.player.y <= o.y + o.h - 25 && // 25 px gap
+          // ✅ Collision detection
+          if (
+            (o.inverted &&
+              s.player.y <= o.y + o.h - 25 &&
               s.player.x + s.player.w > o.x + 15 &&
-              s.player.x < o.x + o.w - 15
-            ) {
-              return endGame();
-            }
-          } else {
-            // Bottom wall — collide when Modi's top touches Rahul's head
-            if (
-              s.player.y + s.player.h >= o.y + 25 && // 25 px from top
+              s.player.x < o.x + o.w - 15) ||
+            (!o.inverted &&
+              s.player.y + s.player.h >= o.y + 25 &&
               s.player.x + s.player.w > o.x + 15 &&
-              s.player.x < o.x + o.w - 15
-            ) {
-              return endGame();
-            }
+              s.player.x < o.x + o.w - 15)
+          ) {
+            return endGame();
           }
 
           if (o.x + o.w < 0) s.obstacles.splice(i, 1);
         }
 
-        // Coins
         for (let i = s.coins.length - 1; i >= 0; i--) {
           const c = s.coins[i];
           c.x -= s.GAME_SPEED;
@@ -193,7 +199,8 @@ export default function GameCanvas() {
             s.coins.splice(i, 1);
             a.supporterSound?.play();
             s.score += 5;
-            document.getElementById("score").innerText = s.score;
+            const score = document.getElementById("score");
+            if (score) score.innerText = s.score;
           } else if (c.x + c.w < 0) s.coins.splice(i, 1);
         }
       }
@@ -204,31 +211,47 @@ export default function GameCanvas() {
     const startGame = () => {
       clearInterval(obstacleTimerRef.current);
       clearInterval(coinTimerRef.current);
-      obstacleTimerRef.current = setInterval(() => !s.gameOver && spawnObstacle(), 2500);
-      coinTimerRef.current = setInterval(() => !s.gameOver && spawnCoin(), 2000);
+      obstacleTimerRef.current = setInterval(
+        () => !s.gameOver && spawnObstacle(),
+        2500
+      );
+      coinTimerRef.current = setInterval(
+        () => !s.gameOver && spawnCoin(),
+        2000
+      );
       rafRef.current = requestAnimationFrame(loop);
     };
 
+    // ✅ Keyboard + Touch controls
     const onKey = (e) => {
       if (e.code === "Space") s.gameOver ? resetGame() : flap();
     };
     const onClick = () => (s.gameOver ? resetGame() : flap());
+    const onTouch = () => (s.gameOver ? resetGame() : flap());
+
     window.addEventListener("keydown", onKey);
     canvas.addEventListener("click", onClick);
+    canvas.addEventListener("touchstart", onTouch);
 
-    // Load all assets from backend
     (async () => {
       try {
-        const [modiImg, rahulImg, coinImg, supporterSound, bgMusic, bellSound, gameOverSound] =
-          await Promise.all([
-            loadImage(`${SERVER}/modi.png`),
-            loadImage(`${SERVER}/rahul.png`),
-            loadImage(`${SERVER}/coin.png`),
-            loadAudio(`${SERVER}/supporterSound.mp3`),
-            loadAudio(`${SERVER}/bgMusic.mp3`),
-            loadAudio(`${SERVER}/bell.mp3`),
-            loadAudio(`${SERVER}/gameOver.mp3`),
-          ]);
+        const [
+          modiImg,
+          rahulImg,
+          coinImg,
+          supporterSound,
+          bgMusic,
+          bellSound,
+          gameOverSound,
+        ] = await Promise.all([
+          loadImage(`${SERVER}/modi.png`),
+          loadImage(`${SERVER}/rahul.png`),
+          loadImage(`${SERVER}/coin.png`),
+          loadAudio(`${SERVER}/supporterSound.mp3`),
+          loadAudio(`${SERVER}/bgMusic.mp3`),
+          loadAudio(`${SERVER}/bell.mp3`),
+          loadAudio(`${SERVER}/gameOver.mp3`),
+        ]);
 
         bgMusic.loop = true;
         assetsRef.current = {
@@ -241,7 +264,14 @@ export default function GameCanvas() {
           gameOverSound,
         };
 
-        s.player = { x: 100, y: s.H / 2, w: 85, h: 85, vy: 0 };
+        s.player = {
+          x: 100,
+          y: s.H / 2,
+          w: isMobile ? 70 : 85,
+          h: isMobile ? 70 : 85,
+          vy: 0,
+        };
+
         console.log("✅ All assets preloaded successfully!");
         startGame();
       } catch (err) {
@@ -253,12 +283,26 @@ export default function GameCanvas() {
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKey);
       canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("touchstart", onTouch);
       clearInterval(obstacleTimerRef.current);
       clearInterval(coinTimerRef.current);
       cancelAnimationFrame(rafRef.current);
       stopAllAudio();
+      document.body.style.overflow = "auto";
+      document.documentElement.style.overflow = "auto";
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="canvas" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="canvas"
+      style={{
+        display: "block",
+        width: "100vw",
+        height: "100vh",
+        background: "linear-gradient(to bottom, skyblue, lightgreen)",
+      }}
+    />
+  );
 }
