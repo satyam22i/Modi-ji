@@ -6,7 +6,7 @@ export default function GameCanvas() {
   const obstacleTimerRef = useRef(null);
   const coinTimerRef = useRef(null);
   const assetsRef = useRef({});
-  const SERVER = "http://localhost:4000"; // backend URL
+  const SERVER = "https://modi-ji.onrender.com"; 
 
   const stateRef = useRef({
     GAME_SPEED: 5,
