@@ -6,7 +6,7 @@ export default function GameCanvas() {
   const obstacleTimerRef = useRef(null);
   const coinTimerRef = useRef(null);
   const assetsRef = useRef({});
-  const SERVER = "https://modi-ji.onrender.com"; 
+    const SERVER = "https://modi-ji.onrender.com"; 
 
   const stateRef = useRef({
     GAME_SPEED: 5,
@@ -55,10 +55,17 @@ export default function GameCanvas() {
       s.GRAVITY = 1.03;
     }
 
-    // Prevent scroll
+    // ✅ Completely disable scrolling and touch dragging on mobile
+    const preventScroll = (e) => e.preventDefault();
+
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
 
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("scroll", preventScroll, { passive: false });
+
+    // ✅ Canvas sizing
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -174,7 +181,7 @@ export default function GameCanvas() {
             ctx.drawImage(a.rahulImg, o.x, o.y, o.w, o.h);
           }
 
-          // ✅ Collision detection
+          // ✅ Collision
           if (
             (o.inverted &&
               s.player.y <= o.y + o.h - 25 &&
@@ -222,7 +229,7 @@ export default function GameCanvas() {
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    // ✅ Keyboard + Touch controls
+    // ✅ Controls (keyboard + touch)
     const onKey = (e) => {
       if (e.code === "Space") s.gameOver ? resetGame() : flap();
     };
@@ -279,11 +286,15 @@ export default function GameCanvas() {
       }
     })();
 
+    // ✅ Cleanup
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKey);
       canvas.removeEventListener("click", onClick);
       canvas.removeEventListener("touchstart", onTouch);
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("scroll", preventScroll);
       clearInterval(obstacleTimerRef.current);
       clearInterval(coinTimerRef.current);
       cancelAnimationFrame(rafRef.current);
@@ -302,6 +313,7 @@ export default function GameCanvas() {
         width: "100vw",
         height: "100vh",
         background: "linear-gradient(to bottom, skyblue, lightgreen)",
+        touchAction: "none", // ✅ stops mobile touch scrolling
       }}
     />
   );
