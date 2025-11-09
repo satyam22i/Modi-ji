@@ -6,7 +6,7 @@ export default function GameCanvas() {
   const obstacleTimerRef = useRef(null);
   const coinTimerRef = useRef(null);
   const assetsRef = useRef({});
-    const SERVER = "https://modi-ji.onrender.com"; 
+  const SERVER = "https://modi-ji.onrender.com"; 
 
   const stateRef = useRef({
     GAME_SPEED: 5,
@@ -47,7 +47,7 @@ export default function GameCanvas() {
 
     const isMobile = window.innerWidth < 768;
 
-    // ✅ Adjust game settings for mobile
+  
     if (isMobile) {
       s.GAME_SPEED = 3;
       s.WALL_WIDTH = 120;
@@ -55,17 +55,10 @@ export default function GameCanvas() {
       s.GRAVITY = 1.03;
     }
 
-    // ✅ Completely disable scrolling and touch dragging on mobile
-    const preventScroll = (e) => e.preventDefault();
-
+    // Prevent scroll
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
 
-    window.addEventListener("touchmove", preventScroll, { passive: false });
-    window.addEventListener("wheel", preventScroll, { passive: false });
-    window.addEventListener("scroll", preventScroll, { passive: false });
-
-    // ✅ Canvas sizing
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -181,7 +174,7 @@ export default function GameCanvas() {
             ctx.drawImage(a.rahulImg, o.x, o.y, o.w, o.h);
           }
 
-          // ✅ Collision
+          
           if (
             (o.inverted &&
               s.player.y <= o.y + o.h - 25 &&
@@ -229,7 +222,7 @@ export default function GameCanvas() {
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    // ✅ Controls (keyboard + touch)
+    
     const onKey = (e) => {
       if (e.code === "Space") s.gameOver ? resetGame() : flap();
     };
@@ -279,22 +272,18 @@ export default function GameCanvas() {
           vy: 0,
         };
 
-        console.log("✅ All assets preloaded successfully!");
+        console.log("All assets preloaded successfully!");
         startGame();
       } catch (err) {
         console.error(err);
       }
     })();
 
-    // ✅ Cleanup
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKey);
       canvas.removeEventListener("click", onClick);
       canvas.removeEventListener("touchstart", onTouch);
-      window.removeEventListener("touchmove", preventScroll);
-      window.removeEventListener("wheel", preventScroll);
-      window.removeEventListener("scroll", preventScroll);
       clearInterval(obstacleTimerRef.current);
       clearInterval(coinTimerRef.current);
       cancelAnimationFrame(rafRef.current);
@@ -313,7 +302,6 @@ export default function GameCanvas() {
         width: "100vw",
         height: "100vh",
         background: "linear-gradient(to bottom, skyblue, lightgreen)",
-        touchAction: "none", // ✅ stops mobile touch scrolling
       }}
     />
   );
